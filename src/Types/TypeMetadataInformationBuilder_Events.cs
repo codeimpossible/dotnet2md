@@ -15,7 +15,7 @@ namespace DotnetToMd.Metadata
 
             IEnumerable<EventInfo> events = _type.GetEvents(Utilities.DefaultFlags).Where(IsEventVisible);
 
-            foreach (EventInfo @event in events)
+            foreach (var @event in events)
             {
                 if (@event.EventHandlerType is null)
                 {
@@ -23,7 +23,7 @@ namespace DotnetToMd.Metadata
                     continue;
                 }
 
-                TypeInformation? eventType = TypeInformationBuilder.FetchOrCreate(_parser, @event.EventHandlerType);
+                var eventType = TypeInformationBuilder.FetchOrCreate(_parser, @event.EventHandlerType);
                 if (eventType is null)
                 {
                     Debug.Fail("Unable to decode property type?");
@@ -55,7 +55,7 @@ namespace DotnetToMd.Metadata
         {
             StringBuilder result = new();
 
-            MethodInfo? raiseMethod = e.GetAddMethod();
+            var raiseMethod = e.GetAddMethod();
 
             if (raiseMethod is null)
             {
@@ -80,6 +80,23 @@ namespace DotnetToMd.Metadata
             result.Append($"{returnTypeInfo.Name} {e.Name};");
 
             return result.ToString();
+        }
+
+        private static AccessModifier GetMethodAccess(MethodBase m)
+        {
+            if (m.IsPublic)
+            {
+                return AccessModifier.Public;
+            }
+            else if (m.IsFamily)
+            {
+                return AccessModifier.Protected;
+            }
+            else if (m.IsAssembly)
+            {
+                return AccessModifier.Internal;
+            }
+            return AccessModifier.Private;
         }
 
         private static string GetMethodAccessorName(MethodBase m)

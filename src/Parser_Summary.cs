@@ -16,14 +16,17 @@ namespace DotnetToMd
                 return text;
             }
 
-            text = GetSummary(text);
-            if (text is null)
+            string[] paras = [GetSummary(text), GetRemarks(text)];
+
+            text = string.Join(Environment.NewLine, paras).Trim();
+
+            if (text is null || string.IsNullOrWhiteSpace(text))
             {
                 return null;
             }
 
             Regex re = new("(<see cref=\")(.*)(\"[ ]?/>)");
-            MatchCollection matchCollection = re.Matches(text);
+            var matchCollection = re.Matches(text);
 
             foreach (Match match in matchCollection)
             {
@@ -32,8 +35,8 @@ namespace DotnetToMd
                     continue;
                 }
 
-                string replaceString = match.Value;
-                string memberName = match.Groups[2].Value;
+                var replaceString = match.Value;
+                var memberName = match.Groups[2].Value;
 
                 text = text.Replace(replaceString, ToReferenceLink(memberName, prefix));
             }
@@ -48,7 +51,15 @@ namespace DotnetToMd
         private string? GetSummary(string text)
         {
             Regex re = new(@"^(<summary>)((.|\r|\n)*)(?=<\/summary>)");
-            Match m = re.Match(text);
+            var m = re.Match(text);
+
+            return m.Groups[2].Value.Trim();
+        }
+
+        private string? GetRemarks(string text)
+        {
+            Regex re = new(@"^(<remarks>)((.|\r|\n)*)(?=<\/remarks>)");
+            var m = re.Match(text);
 
             return m.Groups[2].Value.Trim();
         }
@@ -57,13 +68,13 @@ namespace DotnetToMd
         /// <param name="prefix">Prefix of the current namespace (for appending to a relative path).</param>
         private string ToReferenceLink(string fullName, string prefix)
         {
-            string name = fullName.Substring(fullName.LastIndexOf(':') + 1);
-            char firstCharacter = fullName[0];
+            var name = fullName.Substring(fullName.LastIndexOf(':') + 1);
+            var firstCharacter = fullName[0];
 
             string? declaringTypeName;
             TypeInformation? type;
 
-            string referenceLink = string.Empty;
+            var referenceLink = string.Empty;
             switch (firstCharacter)
             {
                 case 'T':
@@ -87,7 +98,7 @@ namespace DotnetToMd
                         break;
                     }
 
-                    string propertyName = GetMemberName(declaringTypeName, name);
+                    var propertyName = GetMemberName(declaringTypeName, name);
 
                     name = $"{type.Name}.{propertyName}";
                     referenceLink = GetPropertyReferenceLink(type, propertyName, prefix);
@@ -102,7 +113,7 @@ namespace DotnetToMd
                         break;
                     }
 
-                    string methodName = GetMemberName(declaringTypeName, name);
+                    var methodName = GetMemberName(declaringTypeName, name);
 
                     name = $"{type.Name}.{methodName}";
                     referenceLink = GetMethodReferenceLink(type, methodName, prefix);
@@ -127,7 +138,7 @@ namespace DotnetToMd
 
         private string GetPropertyReferenceLink(TypeInformation type, string member, string prefix)
         {
-            string referenceLink = type.ReferenceLink;
+            var referenceLink = type.ReferenceLink;
 
             // TODO: Support external websites!!
             if (type.ReferenceLink.Contains("https"))
@@ -141,7 +152,7 @@ namespace DotnetToMd
 
         private string GetMethodReferenceLink(TypeInformation type, string method, string prefix)
         {
-            string referenceLink = type.ReferenceLink;
+            var referenceLink = type.ReferenceLink;
 
             // TODO: Support external types.
             if (type is not TypeMetadataInformation metadataType)
@@ -149,14 +160,14 @@ namespace DotnetToMd
                 return referenceLink;
             }
 
-            if (!(metadataType.Methods?.TryGetValue(method, out MethodInformation? methodInfo) ?? false))
+            if (!(metadataType.Methods?.TryGetValue(method, out var methodInfo) ?? false))
             {
                 return $"{prefix}{referenceLink}";
             }
 
             method = methodInfo.GetPrettyKey();
 
-            int firstSpaceIndex = method.IndexOf(' ');
+            var firstSpaceIndex = method.IndexOf(' ');
             if (firstSpaceIndex != -1)
             {
                 method = method.Substring(0, firstSpaceIndex);

@@ -15,7 +15,7 @@ namespace DotnetToMd.Metadata
 
             IEnumerable<FieldInfo> fields = _type.GetFields(Utilities.DefaultFlags).Where(IsFieldVisible);
 
-            foreach (FieldInfo field in fields)
+            foreach (var field in fields)
             {
                 if (field.Attributes.HasFlag(FieldAttributes.RTSpecialName))
                 {
@@ -23,7 +23,7 @@ namespace DotnetToMd.Metadata
                     continue;
                 }
 
-                TypeInformation? typeInfo = TypeInformationBuilder.FetchOrCreate(_parser, field.FieldType);
+                var typeInfo = TypeInformationBuilder.FetchOrCreate(_parser, field.FieldType);
                 if (typeInfo is null)
                 {
                     Debug.Fail("Unable to decode field type?");

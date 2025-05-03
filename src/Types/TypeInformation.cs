@@ -3,10 +3,8 @@ using System.Text;
 
 namespace DotnetToMd.Metadata
 {
-    public abstract class TypeInformation
+    public abstract class TypeInformation : InformationBase
     {
-        public readonly string Name;
-
         public readonly string Assembly;
         public readonly string? Namespace;
 
@@ -45,7 +43,7 @@ namespace DotnetToMd.Metadata
                 builder.Append('{');
 
                 ImmutableArray<TypeInformation> arguments = GenericArguments!.Value;
-                for (int a = 0; a < arguments.Length; a++)
+                for (var a = 0; a < arguments.Length; a++)
                 {
                     builder.Append(arguments[a].GetKey());
 

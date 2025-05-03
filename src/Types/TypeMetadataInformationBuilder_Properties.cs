@@ -15,9 +15,9 @@ namespace DotnetToMd.Metadata
 
             IEnumerable<PropertyInfo> properties = _type.GetProperties(Utilities.DefaultFlags).Where(IsPropertyVisible);
 
-            foreach (PropertyInfo property in properties)
+            foreach (var property in properties)
             {
-                TypeInformation? propertyType = TypeInformationBuilder.FetchOrCreate(_parser, property.PropertyType);
+                var propertyType = TypeInformationBuilder.FetchOrCreate(_parser, property.PropertyType);
                 if (propertyType is null)
                 {
                     Debug.Fail("Unable to decode property type?");
@@ -26,6 +26,7 @@ namespace DotnetToMd.Metadata
 
                 ArgumentInformation returnInfo = new(default, propertyType);
                 PropertyInformation propertyInfo = new(MemberKind.Property, property.Name, _typeResult, returnInfo);
+                propertyInfo.AccessModifier = GetMethodAccess(property.GetMethod);
 
                 result.Add(propertyInfo);
 
@@ -34,7 +35,7 @@ namespace DotnetToMd.Metadata
 
 
             var builder = ImmutableDictionary.CreateBuilder<string, PropertyInformation>();
-            foreach (PropertyInformation p in result)
+            foreach (var p in result)
             {
                 // We might expect properties with the same signature due to overriding settings.
                 // In these cases, just keep track of one of them.
@@ -58,8 +59,8 @@ namespace DotnetToMd.Metadata
         {
             StringBuilder result = new();
 
-            MethodInfo? getMethod = p.GetMethod;
-            MethodInfo? setMethod = p.SetMethod;
+            var getMethod = p.GetMethod;
+            var setMethod = p.SetMethod;
 
             if (getMethod is null)
             {

@@ -18,7 +18,7 @@ namespace DotnetToMd
         ///  3. Output path of the markdown files.
         /// </param>
         /// <exception cref="ArgumentException">Whenever the arguments mismatch the expectation of <paramref name="args"/>.</exception>
-        internal static void Main(string[] args)
+        internal static int Main(string[] args)
         {
             if (args.Length < 3)
             {
@@ -29,15 +29,15 @@ namespace DotnetToMd
                     "  * <targets>\ttarget assemblies to scan.\n");
                 Console.ResetColor();
 
-                return;
+                return 1;
             }
 
-            string sourcePath = ProcessPathToRoot(args[0]);
-            string outputPath = ProcessPathToRoot(args[1]);
+            var sourcePath = ProcessPathToRoot(args[0]);
+            var outputPath = ProcessPathToRoot(args[1]);
 
             // Name of the target assembly which we will scan.
             List<string> targetAssemblies = new();
-            for (int i = 2; i < args.Length; i++)
+            for (var i = 2; i < args.Length; i++)
             {
                 targetAssemblies.AddRange(args[i].Split(' '));
             }
@@ -53,19 +53,27 @@ namespace DotnetToMd
                 Console.ResetColor();
 
                 Console.WriteLine($"Make sure your project has all the dependencies reachable from '{sourcePath}'.");
-                return;
+                return 1;
             }
             catch (Exception e)
             {
                 // Write output before exiting.
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine(e.Message);
+                var iex = e;
+                while (iex != null)
+                {
+                    Console.WriteLine(iex.Message);
+                    Console.WriteLine($"-----------------------------------------------------------------------------");
+                    Console.WriteLine(iex.StackTrace);
+                    iex = iex.InnerException;
+                }
                 Console.ResetColor();
 
-                return;
+                return 1;
             }
 
             Console.WriteLine("Finished generating markdown files!");
+            return 0;
         }
 
         /// <summary>
@@ -74,6 +82,9 @@ namespace DotnetToMd
         public static void Parse(string sourcePath, string outputPath, IEnumerable<string> targetAssemblies)
         {
             CreateIfNotFound(outputPath);
+
+            Console.WriteLine($"sourcePath: {sourcePath}");
+            Console.WriteLine($"outputPath: {outputPath}");
 
             string[] xmlFiles = GetXmlFilePaths(sourcePath).ToArray();
             if (xmlFiles.Count() == 0)
@@ -90,14 +101,14 @@ namespace DotnetToMd
             List<Assembly> assembliesToScan = new();
 
             List<Assembly> dependencies = new();
-            foreach (string assembly in allAssemblies)
+            foreach (var assembly in allAssemblies)
             {
                 try
                 {
-                    Assembly asm = Assembly.LoadFrom(assembly);
+                    var asm = Assembly.LoadFrom(assembly);
                     dependencies.Add(asm);
 
-                    foreach (string targetAssembly in targetAssemblies)
+                    foreach (var targetAssembly in targetAssemblies)
                     {
                         if (asm.ManifestModule.Name.Equals($"{targetAssembly}.dll", StringComparison.OrdinalIgnoreCase))
                         {
@@ -151,7 +162,8 @@ namespace DotnetToMd
         {
             if (!Path.IsPathRooted(path))
             {
-                return Path.GetFullPath(Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()!.Location), path));
+                return Path.GetFullPath(path, Environment.CurrentDirectory);
+                // return Path.GetFullPath(Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()!.Location), path));
             }
 
             return path;

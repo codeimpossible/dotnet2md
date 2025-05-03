@@ -6,8 +6,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    
-    <PublishSingleFile>true</PublishSingleFile>
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+<!--    <PublishSingleFile>true</PublishSingleFile>-->
   </PropertyGroup>
 
   <ItemGroup>

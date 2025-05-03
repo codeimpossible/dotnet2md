@@ -21,11 +21,6 @@ namespace DotnetToMd.Metadata
         public ImmutableDictionary<string, MethodInformation>? Methods;
         public ImmutableDictionary<string, PropertyInformation>? Events;
 
-        /// <summary>
-        /// Fetched once we query the documentation file.
-        /// </summary>
-        public string? Summary;
-
         public override string ReferenceLink => Namespace is not null ?
             $"{Namespace.Replace('.', '/')}/{EscapedFilename}.html" : string.Empty;
 

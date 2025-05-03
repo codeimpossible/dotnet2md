@@ -1,14 +1,14 @@
 ﻿namespace DotnetToMd.Metadata
 {
-    public class PropertyInformation : IComparable<PropertyInformation>
+    public class PropertyInformation : InformationBase, IComparable<PropertyInformation>
     {
         public readonly MemberKind Kind;
 
-        public readonly string Name;
         public readonly TypeInformation DeclaringType;
         public readonly ArgumentInformation Return;
 
-        public string? Summary;
+        public AccessModifier AccessModifier { get; set; } = AccessModifier.Private;
+
         public string? Signature;
 
         public PropertyInformation(MemberKind kind, string name, TypeInformation declaringType, ArgumentInformation @return)

@@ -15,7 +15,7 @@
         {
             get
             {
-                string suffix = Type.IsArray ? "[]" : "&";
+                var suffix = Type.IsArray ? "[]" : "&";
                 return $"{_underlyingType.EscapedNameForHeader}{suffix}";
             }
         }

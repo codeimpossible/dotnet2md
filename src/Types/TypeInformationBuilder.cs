@@ -7,7 +7,7 @@ namespace DotnetToMd.Metadata
     {
         public static TypeInformation? FetchOrCreate(Parser parser, Type t)
         {
-            if (parser.NameToTypes.TryGetValue(t.AsKey(), out TypeInformation? typeInfo))
+            if (parser.NameToTypes.TryGetValue(t.AsKey(), out var typeInfo))
             {
                 return typeInfo;
             }
@@ -59,7 +59,7 @@ namespace DotnetToMd.Metadata
             }
             else
             {
-                MemberKind? kind = FindTypeKind(t);
+                var kind = FindTypeKind(t);
                 if (kind is null)
                 {
                     Debug.Fail($"Unable to identify kind of ${t.Name}");
@@ -104,9 +104,9 @@ namespace DotnetToMd.Metadata
             if (t.IsGenericType)
             {
                 List<TypeInformation> argumentsInfo = new();
-                foreach (Type tt in t.GetGenericArguments())
+                foreach (var tt in t.GetGenericArguments())
                 {
-                    TypeInformation? genericArgumentInfo = FetchOrCreate(parser, tt);
+                    var genericArgumentInfo = FetchOrCreate(parser, tt);
                     if (genericArgumentInfo is not null)
                     {
                         argumentsInfo.Add(genericArgumentInfo);

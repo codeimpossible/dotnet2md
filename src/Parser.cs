@@ -37,10 +37,10 @@ namespace DotnetToMd
 
         private void ReadMetadata()
         {
-            foreach (Assembly asm in Targets)
+            foreach (var asm in Targets)
             {
                 IEnumerable<Type> publicTypes = asm.GetTypes().Where(t => t.IsPublic);
-                foreach (Type t in publicTypes)
+                foreach (var t in publicTypes)
                 {
                     if (TypeInformationBuilder.FetchOrCreate(this, t) is null)
                     {
@@ -52,9 +52,9 @@ namespace DotnetToMd
 
         private void ReadXml()
         {
-            foreach (string file in _xmlFiles)
+            foreach (var file in _xmlFiles)
             {
-                XDocument xml = XDocument.Load(file);
+                var xml = XDocument.Load(file);
 
                 if (xml.Root?.Descendants("members")?.Elements() is not IEnumerable<XElement> members)
                 {
@@ -62,7 +62,7 @@ namespace DotnetToMd
                     return;
                 }
 
-                foreach (XElement element in members)
+                foreach (var element in members)
                 {
                     ProcessMember(element);
                 }
@@ -71,18 +71,25 @@ namespace DotnetToMd
 
         private void ProcessMember(XElement element)
         {
-            string? memberName = element.Attribute("name")?.Value;
-            string? summary = element.Element("summary")?.ToString();
+            var memberName = element.Attribute("name")?.Value;
+            var summary = element.Element("summary")?.ToString();
+            var remarks = element.Element("remarks")?.ToString();
 
-            if (string.IsNullOrEmpty(memberName))
+            if (element.Name != "member")
             {
-                Debug.Fail("Skipping empty member?");
                 return;
             }
 
-            string name = memberName.Substring(memberName.LastIndexOf(':') + 1);
+            if (string.IsNullOrEmpty(memberName))
+            {
+                Debug.Fail($"Skipping empty member? '{element}'");
+                return;
+            }
 
-            char firstCharacter = memberName[0];
+            var name = memberName.Substring(memberName.LastIndexOf(':') + 1);
+
+            var firstCharacter = memberName[0];
+            ProcessAny(element, name);
             switch (firstCharacter)
             {
                 case 'T':
@@ -102,15 +109,31 @@ namespace DotnetToMd
                     ProcessEventMember(element, name, summary);
                     return;
 
+                case 'A':
+                case '?': return;
+
                 default:
-                    Debug.Fail("Unsupported scenario?");
+                    Debug.Fail($"Unsupported scenario? '{element}'");
                     return;
+            }
+        }
+
+        private void ProcessAny(XElement el, string name)
+        {
+            if (!NameToTypes.TryGetValue(name, out var typeInfo))
+            {
+                return;
+            }
+
+            if (typeInfo is TypeMetadataInformation metadataInfo)
+            {
+                metadataInfo.AdditionalLinks.AddRange(FormatAdditionalLinks(el));
             }
         }
 
         private void ProcessTypeMember(XElement _, string name, string? summary)
         {
-            if (!NameToTypes.TryGetValue(name, out TypeInformation? typeInfo))
+            if (!NameToTypes.TryGetValue(name, out var typeInfo))
             {
                 return;
             }
@@ -123,16 +146,16 @@ namespace DotnetToMd
 
         private void ProcessFieldOrPropertyMember(XElement _, string name, string? summary)
         {
-            string declaringType = Utilities.GetDeclaringTypeName(name);
-            if (!NameToTypes.TryGetValue(declaringType, out TypeInformation? typeInfo) || 
+            var declaringType = Utilities.GetDeclaringTypeName(name);
+            if (!NameToTypes.TryGetValue(declaringType, out var typeInfo) ||
                 typeInfo is not TypeMetadataInformation metadataInfo)
             {
                 // Internal types won't be in the list.
                 return;
             }
 
-            string propertyName = GetMemberName(declaringType, name);
-            if (metadataInfo.Properties?.TryGetValue(propertyName, out PropertyInformation? propertyInfo) ?? false)
+            var propertyName = GetMemberName(declaringType, name);
+            if (metadataInfo.Properties?.TryGetValue(propertyName, out var propertyInfo) ?? false)
             {
                 propertyInfo.Summary = FormatSummary(summary, RetrieveRelativePathFromNamespace(propertyInfo.DeclaringType.Namespace));
             }
@@ -140,29 +163,29 @@ namespace DotnetToMd
 
         private void ProcessMethodMember(XElement element, string name, string? summary)
         {
-            string declaringType = Utilities.GetDeclaringTypeOfMethod(name);
-            if (!NameToTypes.TryGetValue(declaringType, out TypeInformation? typeInfo) ||
+            var declaringType = Utilities.GetDeclaringTypeOfMethod(name);
+            if (!NameToTypes.TryGetValue(declaringType, out var typeInfo) ||
                 typeInfo is not TypeMetadataInformation metadataInfo)
             {
                 // Internal types won't be in the list.
                 return;
             }
 
-            string methodName = GetMemberName(declaringType, name);
-            if ((metadataInfo.Methods?.TryGetValue(methodName, out MethodInformation? methodInfo) ?? false) ||
+            var methodName = GetMemberName(declaringType, name);
+            if ((metadataInfo.Methods?.TryGetValue(methodName, out var methodInfo) ?? false) ||
                 (metadataInfo.Constructors?.TryGetValue(methodName, out methodInfo) ?? false))
             {
-                string relativePathFromNamespace = RetrieveRelativePathFromNamespace(methodInfo.DeclaringType.Namespace);
+                var relativePathFromNamespace = RetrieveRelativePathFromNamespace(methodInfo.DeclaringType.Namespace);
 
                 methodInfo.Summary = FormatSummary(summary, relativePathFromNamespace);
 
                 List<XElement>? parameters = element.Elements("param")?.ToList();
                 if (methodInfo.Parameters is not null && parameters?.Count > 0)
                 {
-                    foreach (XElement parameter in parameters)
+                    foreach (var parameter in parameters)
                     {
-                        string? parameterName = parameter.Attribute("name")?.Value.Trim();
-                        string parameterSummary = FormatSummary(parameter.Value.Trim(), relativePathFromNamespace) ?? string.Empty;
+                        var parameterName = parameter.Attribute("name")?.Value.Trim();
+                        var parameterSummary = FormatSummary(parameter.Value.Trim(), relativePathFromNamespace) ?? string.Empty;
 
                         if (parameterName is not null && 
                             methodInfo.Parameters.Value.FirstOrDefault(p => p.Name == parameterName) is ArgumentInformation argument)
@@ -172,10 +195,10 @@ namespace DotnetToMd
                     }
                 }
 
-                XElement? @return = element.Element("returns");
+                var @return = element.Element("returns");
                 if (@return is not null && methodInfo.Return is ArgumentInformation returnInfo)
                 {
-                    string returnSummary = @return.Value.Trim();
+                    var returnSummary = @return.Value.Trim();
                     returnInfo.Summary = FormatSummary(returnSummary, relativePathFromNamespace);
                 }
 
@@ -183,12 +206,12 @@ namespace DotnetToMd
                 if (exceptions?.Count > 0)
                 {
                     var builder = ImmutableArray.CreateBuilder<(TypeInformation Type, string Summary)>();
-                    foreach (XElement e in exceptions)
+                    foreach (var e in exceptions)
                     {
-                        string? parameterRefName = e.Attribute("cref")?.Value.Trim();
+                        var parameterRefName = e.Attribute("cref")?.Value.Trim();
                         parameterRefName = parameterRefName?.Substring(parameterRefName.LastIndexOf(':') + 1);
 
-                        string exceptionSummary = FormatSummary(e.Value.Trim(), relativePathFromNamespace) ?? string.Empty;
+                        var exceptionSummary = FormatSummary(e.Value.Trim(), relativePathFromNamespace) ?? string.Empty;
 
                         if (parameterRefName is not null && 
                             FetchOrCreate(parameterRefName) is TypeInformation typeInformation)
@@ -204,16 +227,16 @@ namespace DotnetToMd
 
         private void ProcessEventMember(XElement _, string name, string? summary)
         {
-            string declaringType = Utilities.GetDeclaringTypeName(name);
-            if (!NameToTypes.TryGetValue(declaringType, out TypeInformation? typeInfo) ||
+            var declaringType = Utilities.GetDeclaringTypeName(name);
+            if (!NameToTypes.TryGetValue(declaringType, out var typeInfo) ||
                 typeInfo is not TypeMetadataInformation metadataInfo)
             {
                 // Internal types won't be in the list.
                 return;
             }
 
-            string eventName = GetMemberName(declaringType, name);
-            if (metadataInfo.Events?.TryGetValue(eventName, out PropertyInformation? eventInfo) ?? false)
+            var eventName = GetMemberName(declaringType, name);
+            if (metadataInfo.Events?.TryGetValue(eventName, out var eventInfo) ?? false)
             {
                 eventInfo.Summary = FormatSummary(summary, RetrieveRelativePathFromNamespace(eventInfo.DeclaringType.Namespace));
             }
@@ -226,12 +249,12 @@ namespace DotnetToMd
 
         public TypeInformation? FetchOrCreate(string typeName)
         {
-            if (NameToTypes.TryGetValue(typeName, out TypeInformation? typeInfo))
+            if (NameToTypes.TryGetValue(typeName, out var typeInfo))
             {
                 return typeInfo;
             }
 
-            Type? t = FindType(typeName);
+            var t = FindType(typeName);
             if (t is not null)
             {
                 return TypeInformationBuilder.CreateTypeInformationFromType(this, t);
@@ -242,13 +265,13 @@ namespace DotnetToMd
 
         private Type? FindType(string name)
         {
-            Type? t = typeof(string).Assembly.GetType(name);
+            var t = typeof(string).Assembly.GetType(name);
             if (t is not null)
             {
                 return t;
             }
 
-            foreach (Assembly a in _dependencies)
+            foreach (var a in _dependencies)
             {
                 t = a.GetType(name);
                 if (t is not null)

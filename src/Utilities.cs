@@ -19,12 +19,12 @@ namespace DotnetToMd
 
         public static string CleanNameOfGeneric(Type genericType, bool useFullName = false)
         {
-            string name = useFullName && genericType.FullName is not null ? 
+            var name = useFullName && genericType.FullName is not null ?
                 genericType.FullName : genericType.Name;
 
             // In some cases, the generic name is actually the parent type.
             // So we will check if there is any generic that requires clean up.
-            int index = name.IndexOf("`", StringComparison.InvariantCulture);
+            var index = name.IndexOf("`", StringComparison.InvariantCulture);
             if (index != -1)
             {
                 return name.Substring(0, name.IndexOf("`", StringComparison.InvariantCulture));
@@ -41,7 +41,7 @@ namespace DotnetToMd
 
         public static string StripParameters(string methodName)
         {
-            int index = methodName.LastIndexOf('(');
+            var index = methodName.LastIndexOf('(');
             if (index == -1)
             {
                 return methodName;
@@ -52,7 +52,7 @@ namespace DotnetToMd
 
         public static string GetArgumentCountFromName(Type genericType)
         {
-            string name = genericType.Name;
+            var name = genericType.Name;
             return name.Substring(name.IndexOf("`", StringComparison.InvariantCulture) + 1);
         }
 
@@ -63,8 +63,8 @@ namespace DotnetToMd
             string name;
             if (t.IsGenericType)
             {
-                string genericName = CleanNameOfGeneric(t);
-                string arguments = GetArgumentCountFromName(t);
+                var genericName = CleanNameOfGeneric(t);
+                var arguments = GetArgumentCountFromName(t);
 
                 name = $"{genericName}-{arguments}";
             }
@@ -92,7 +92,7 @@ namespace DotnetToMd
             StringBuilder builder = new();
 
             builder.AppendFormat("{0}<", CleanNameOfGeneric(genericType));
-            for (int a = 0; a < arguments.Length; a++)
+            for (var a = 0; a < arguments.Length; a++)
             {
                 builder.Append(PrettifyName(arguments[a]));
 
@@ -137,7 +137,7 @@ namespace DotnetToMd
             }
 
             if ((type.IsPrimitive || type == typeof(string)) && 
-                _primitiveAlias.TryGetValue(type, out string? value))
+                _primitiveAlias.TryGetValue(type, out var value))
             {
                 return value;
             }

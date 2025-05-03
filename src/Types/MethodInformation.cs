@@ -3,13 +3,17 @@ using System.Text;
 
 namespace DotnetToMd.Metadata
 {
-    public class MethodInformation : IComparable<MethodInformation>
+    public class MethodInformation : InformationBase, IComparable<MethodInformation>
     {
-        public readonly string Name;
         public readonly TypeInformation DeclaringType;
         public readonly ArgumentInformation? Return;
 
         public ImmutableArray<ArgumentInformation>? GenericArguments;
+
+        public AccessModifier AccessModifier { get; set; } = AccessModifier.Private;
+
+        public bool IsVirtual { get; set; }
+        public bool IsAbstract { get; set; }
 
         /// <summary>
         /// This is not a dictionary since it's important to keep the order for this.
@@ -45,8 +49,8 @@ namespace DotnetToMd.Metadata
                 {
                     result.Append("(");
 
-                    int remainingParameters = Parameters.Value.Length;
-                    foreach (ArgumentInformation arg in Parameters.Value)
+                    var remainingParameters = Parameters.Value.Length;
+                    foreach (var arg in Parameters.Value)
                     {
                         remainingParameters--;
                         result.Append(arg.Type.GetKey());
@@ -80,8 +84,8 @@ namespace DotnetToMd.Metadata
 
             if (Parameters is not null)
             {
-                int remainingParameters = Parameters.Value.Length;
-                foreach (ArgumentInformation arg in Parameters)
+                var remainingParameters = Parameters.Value.Length;
+                foreach (var arg in Parameters)
                 {
                     remainingParameters--;
 

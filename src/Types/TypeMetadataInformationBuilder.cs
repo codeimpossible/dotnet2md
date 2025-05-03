@@ -53,9 +53,9 @@ namespace DotnetToMd.Metadata
                 _inheritedClass = TypeInformationBuilder.FetchOrCreate(_parser, baseType);
             }
 
-            foreach (Type @interface in _type.GetInterfaces())
+            foreach (var @interface in _type.GetInterfaces())
             {
-                TypeInformation? @interfaceInfo = TypeInformationBuilder.FetchOrCreate(_parser, @interface);
+                var @interfaceInfo = TypeInformationBuilder.FetchOrCreate(_parser, @interface);
                 if (@interfaceInfo is not null)
                 {
                     _inheritedInterfaces.Add(@interfaceInfo);
@@ -96,7 +96,7 @@ namespace DotnetToMd.Metadata
                 _ => string.Empty
             });
 
-            string name = _type.IsGenericType ? Utilities.FormatGenericName(_type) : _type.Name;
+            var name = _type.IsGenericType ? Utilities.FormatGenericName(_type) : _type.Name;
             result.Append($"{name} ");
 
             List<TypeInformation> implementations = new();
@@ -109,7 +109,7 @@ namespace DotnetToMd.Metadata
 
             implementations.AddRange(_inheritedInterfaces);
 
-            for (int i = 0; i < implementations.Count; ++i)
+            for (var i = 0; i < implementations.Count; ++i)
             {
                 if (i == 0)
                 {

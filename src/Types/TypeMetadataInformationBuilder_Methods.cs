@@ -25,7 +25,7 @@ namespace DotnetToMd.Metadata
 
             List<MethodInformation> result = new();
 
-            foreach (MethodBase method in methods)
+            foreach (var method in methods)
             {
                 if (method.IsSpecialName && !method.IsConstructor)
                 {
@@ -50,10 +50,10 @@ namespace DotnetToMd.Metadata
 
                 ArgumentInformation? returnInfo = null;
 
-                Type? returnType = (method as MethodInfo)?.ReturnType;
+                var returnType = (method as MethodInfo)?.ReturnType;
                 if (returnType is not null && returnType != typeof(void))
                 {
-                    TypeInformation? typeInfo = TypeInformationBuilder.FetchOrCreate(_parser, returnType);
+                    var typeInfo = TypeInformationBuilder.FetchOrCreate(_parser, returnType);
                     if (typeInfo is null)
                     {
                         Debug.Fail("Unable to decode return type?");
@@ -64,9 +64,9 @@ namespace DotnetToMd.Metadata
                 }
 
                 List<ArgumentInformation> parameters = new();
-                foreach (ParameterInfo parameter in method.GetParameters())
+                foreach (var parameter in method.GetParameters())
                 {
-                    TypeInformation? typeInfo = TypeInformationBuilder.FetchOrCreate(_parser, parameter.ParameterType);
+                    var typeInfo = TypeInformationBuilder.FetchOrCreate(_parser, parameter.ParameterType);
                     if (typeInfo is null)
                     {
                         Debug.Fail("Unable to decode paremeter type?");
@@ -88,9 +88,9 @@ namespace DotnetToMd.Metadata
 
                 if (!method.IsConstructor)
                 {
-                    foreach (Type genericType in method.GetGenericArguments())
+                    foreach (var genericType in method.GetGenericArguments())
                     {
-                        TypeInformation? typeInfo = TypeInformationBuilder.FetchOrCreate(_parser, genericType);
+                        var typeInfo = TypeInformationBuilder.FetchOrCreate(_parser, genericType);
                         if (typeInfo is null)
                         {
                             Debug.Fail("Unable to decode paremeter type?");
@@ -102,6 +102,10 @@ namespace DotnetToMd.Metadata
                 }
                 
                 MethodInformation methodInfo = new(method.Name, _typeResult, returnInfo);
+                if (method.IsPublic)
+                    methodInfo.AccessModifier = AccessModifier.Public;
+                methodInfo.IsAbstract = method.IsAbstract;
+                methodInfo.IsVirtual = method.IsVirtual;
 
                 result.Add(methodInfo);
 
@@ -113,7 +117,7 @@ namespace DotnetToMd.Metadata
             }
 
             var builder = ImmutableDictionary.CreateBuilder<string, MethodInformation>();
-            foreach (MethodInformation m in result)
+            foreach (var m in result)
             {
                 // We might expect methods with the same signature due to overriding settings.
                 // In these cases, just keep track of one of them.
@@ -136,7 +140,7 @@ namespace DotnetToMd.Metadata
 
             if (m is ConstructorInfo constructorInfo && constructorInfo.DeclaringType is not null)
             {
-                TypeInformation? declaredType = 
+                var declaredType = 
                     TypeInformationBuilder.FetchOrCreate(_parser, constructorInfo.DeclaringType);
 
                 result.Append($"{declaredType!.Name}(");
@@ -157,9 +161,9 @@ namespace DotnetToMd.Metadata
             }
 
             ParameterInfo[] parameters = m.GetParameters();
-            for (int i = 0; i < parameters.Length; ++i)
+            for (var i = 0; i < parameters.Length; ++i)
             {
-                TypeInformation? typeInfo = TypeInformationBuilder.FetchOrCreate(_parser, parameters[i].ParameterType);
+                var typeInfo = TypeInformationBuilder.FetchOrCreate(_parser, parameters[i].ParameterType);
                 if (typeInfo is null)
                 {
                     Debug.Fail("Unable to decode paremeter type?");
