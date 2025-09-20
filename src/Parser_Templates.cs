@@ -336,7 +336,7 @@ namespace DotnetToMd
             StringBuilder builder = new();
             while (level-- >= 0)
             {
-                builder.Append("../");
+                builder.Append("/noir/reference/");
             }
 
             return builder.ToString();

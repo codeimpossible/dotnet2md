@@ -1,17 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <AssemblyName>Parser</AssemblyName>
+    <AssemblyName>dotnet2md</AssemblyName>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
-<!--    <PublishSingleFile>true</PublishSingleFile>-->
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="..\.editorconfig" Link=".editorconfig" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <InternalsVisibleTo Include="dotnet2md.tests" />
   </ItemGroup>
 
 </Project>
