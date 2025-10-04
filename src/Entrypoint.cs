@@ -8,6 +8,8 @@ namespace DotnetToMd
     /// </summary>
     internal class Entrypoint
     {
+        internal static readonly ConfigurationOptions Options = new();
+
         /// <summary>
         /// This will generate the markdown files based on a .xml path.
         /// </summary>
@@ -23,7 +25,7 @@ namespace DotnetToMd
             if (args.Length < 3)
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("Arguments were invalid.\nExpected: Parser.exe <xml_path> <out_path> <targets>\n" +
+                Console.WriteLine("Arguments were invalid.\nExpected: --source=<xml_path> --output=<out_path> [-rls=] <targets>\n" +
                     "  * <xml_path>\tpath to the .xml;\n" +
                     "  * <out_path>\toutput path\n" +
                     "  * <targets>\ttarget assemblies to scan.\n");
@@ -32,13 +34,33 @@ namespace DotnetToMd
                 return 1;
             }
 
-            var sourcePath = ProcessPathToRoot(args[0]);
-            var outputPath = ProcessPathToRoot(args[1]);
+            foreach (var prop in typeof(ConfigurationOptions).GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                var attrs = prop.GetCustomAttributes(typeof(ConfigurationOptionArgAttribute), false);
+                foreach (ConfigurationOptionArgAttribute attr in attrs)
+                {
+                    var argKey = $"{attr.Name}=";
+                    var matchingArg = args.FirstOrDefault(a => a.StartsWith(argKey, StringComparison.OrdinalIgnoreCase));
+                    if (matchingArg != null)
+                    {
+                        var value = matchingArg.Substring(argKey.Length);
+
+                        // Convert value to the property type
+                        var convertedValue = Convert.ChangeType(value, prop.PropertyType);
+
+                        prop.SetValue(Options, convertedValue);
+                    }
+                }
+            }
+
+            var sourcePath = ProcessPathToRoot(Options.SourcePath);
+            var outputPath = ProcessPathToRoot(Options.OutputPath);
 
             // Name of the target assembly which we will scan.
             List<string> targetAssemblies = new();
-            for (var i = 2; i < args.Length; i++)
+            for (var i = 0; i < args.Length; i++)
             {
+                if (args[i].StartsWith("--")) continue;
                 targetAssemblies.AddRange(args[i].Split(' '));
             }
 

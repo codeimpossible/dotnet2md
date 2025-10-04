@@ -21,8 +21,19 @@ namespace DotnetToMd.Metadata
         public ImmutableDictionary<string, MethodInformation>? Methods;
         public ImmutableDictionary<string, PropertyInformation>? Events;
 
-        public override string ReferenceLink => Namespace is not null ?
-            $"{Namespace.Replace('.', '/')}/{EscapedFilename}.html" : string.Empty;
+        public override string ReferenceLink
+        {
+            get
+            {
+                if (Namespace is not null)
+                {
+                    return Entrypoint.Options.InternalReferenceLinkFormat == ConfigurationOptions.ReferenceLinksHtmlFiles ?
+                        $"{Namespace.Replace('.', '/')}/{EscapedFilename}.html" :
+                        $"{Namespace.Replace('.', '/')}/{EscapedFilename}/";
+                }
+                return string.Empty;
+            }
+        }
 
         internal TypeMetadataInformation(
             Type metadata,

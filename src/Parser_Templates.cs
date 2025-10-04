@@ -26,7 +26,7 @@ namespace DotnetToMd
                 {
                     _ = Directory.CreateDirectory(namespacePath);
                 }
-                
+
                 var fullPath = Path.Join(namespacePath, $"{t.EscapedFilename}.md");
                 File.WriteAllText(fullPath, result);
 
@@ -139,7 +139,7 @@ namespace DotnetToMd
 
             if (t.Constructors?.Count > 0)
             {
-                builder.Append("## 🛠 Constructors\n\n");
+                builder.Append("## Constructors\n\n");
 
                 var sortedConstructors = t.Constructors.Values.OrderBy(s => s.FullSignature).ToList();
                 foreach (var c in sortedConstructors)
@@ -150,7 +150,7 @@ namespace DotnetToMd
 
             if (t.Properties?.Count > 0)
             {
-                builder.Append("## 📦 Properties\n\n");
+                builder.Append("## Properties\n\n");
 
                 var sortedProperties = t.Properties.OrderBy(kv => kv.Key).Select(kv => kv.Value).ToList();
                 foreach (var p in sortedProperties)
@@ -161,7 +161,7 @@ namespace DotnetToMd
 
             if (t.Events?.Count > 0)
             {
-                builder.Append("## ⚡ Events\n\n");
+                builder.Append("## Events\n\n");
 
                 var sortedEvents = t.Events.OrderBy(kv => kv.Key).Select(kv => kv.Value).ToList();
                 foreach (var p in sortedEvents)
@@ -172,7 +172,7 @@ namespace DotnetToMd
 
             if (t.Methods?.Count > 0)
             {
-                builder.Append("## ⛹️‍♀️ Methods\n\n");
+                builder.Append("## Methods\n\n");
 
                 // TODO: This will not sort methods with types from different namespaces.
                 var sortedMethods = t.Methods.Values.OrderBy(s => s.FullSignature).ToList();
@@ -201,7 +201,7 @@ namespace DotnetToMd
             var returnTypeString = $"{typeInfo.EscapedNameForHeader}";
             if (!string.IsNullOrEmpty(typeInfo.ReferenceLink))
             {
-                returnTypeString = $"[{typeInfo.EscapedNameForHeader}]({FormatReferenceLink(prefix, typeInfo.ReferenceLink)})";
+                returnTypeString += $" {FormatReferenceLink(prefix, typeInfo.ReferenceLink)}";
             }
             return $"<!-- tc:return_type {returnTypeString} -->\n";
         }
@@ -232,7 +232,7 @@ namespace DotnetToMd
                 builder.Append($"{p.Summary}\n\n");
             }
 
-            builder.Append($"\n```csharp\n{p.Signature}\n```\n\n");
+            builder.Append(FormatCodeSignature(p));
 
             if (p.AdditionalLinks.Count > 0)
             {
@@ -245,6 +245,25 @@ namespace DotnetToMd
             }
 
             return builder;
+        }
+
+        private string FormatCodeSignature(InformationBase info)
+        {
+            var builder = new StringBuilder();
+            builder.Append("\n```csharp\n");
+
+            if (info is MethodInformation methodInfo)
+            {
+                builder.AppendLine(CodeFormatter.FormatMethodDefinition(methodInfo.Signature));
+            }
+
+            if (info is PropertyInformation propInfo)
+            {
+                builder.AppendLine(propInfo.Signature);
+            }
+
+            builder.Append("\n```\n\n");
+            return builder.ToString();
         }
 
         private StringBuilder MethodToMarkdown(MethodInformation m, string prefix)
@@ -267,7 +286,7 @@ namespace DotnetToMd
                 builder.Append($"{m.Summary}\n\n");
             }
 
-            builder.Append($"\n```csharp\n{m.Signature}\n```\n\n");
+            builder.Append(FormatCodeSignature(m));
 
             if (m.Parameters?.Length > 0)
             {
