@@ -62,6 +62,7 @@ namespace DotnetToMd.Metadata
                 var kind = FindTypeKind(t);
                 if (kind is null)
                 {
+                    Utilities.Log($"Unable to identify kind of ${t.Name}");
                     Debug.Fail($"Unable to identify kind of ${t.Name}");
                     return null;
                 }

@@ -2,6 +2,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace DotnetToMd
@@ -74,6 +75,7 @@ namespace DotnetToMd
             var memberName = element.Attribute("name")?.Value;
             var summary = element.Element("summary")?.ToString();
             var remarks = element.Element("remarks")?.ToString();
+            var example = element.Element("example")?.ToString();
 
             if (element.Name != "member")
             {
@@ -93,20 +95,20 @@ namespace DotnetToMd
             switch (firstCharacter)
             {
                 case 'T':
-                    ProcessTypeMember(element, name, summary);
+                    ProcessTypeMember(element, name, summary, remarks, example);
                     return;
 
                 case 'P':
                 case 'F':
-                    ProcessFieldOrPropertyMember(element, name, summary);
+                    ProcessFieldOrPropertyMember(element, name, summary, remarks, example);
                     return;
 
                 case 'M':
-                    ProcessMethodMember(element, name, summary);
+                    ProcessMethodMember(element, name, summary, remarks, example);
                     return;
 
                 case 'E':
-                    ProcessEventMember(element, name, summary);
+                    ProcessEventMember(element, name, summary, remarks, example);
                     return;
 
                 case 'A':
@@ -115,6 +117,23 @@ namespace DotnetToMd
                 default:
                     Debug.Fail($"Unsupported scenario? '{element}'");
                     return;
+            }
+        }
+
+        private bool IsReferenceLink(string? uri)
+        {
+            if (string.IsNullOrEmpty(uri)) return false;
+            var firstCharacter = uri[0];
+            switch (firstCharacter)
+            {
+                case 'T':
+                case 'P':
+                case 'F':
+                case 'M':
+                case 'E':
+                case 'A':
+                case '?': return true;
+                default: return false;
             }
         }
 
@@ -131,7 +150,7 @@ namespace DotnetToMd
             }
         }
 
-        private void ProcessTypeMember(XElement _, string name, string? summary)
+        private void ProcessTypeMember(XElement _, string name, string? summary, string? remarks, string? example)
         {
             if (!NameToTypes.TryGetValue(name, out var typeInfo))
             {
@@ -140,11 +159,11 @@ namespace DotnetToMd
 
             if (typeInfo is TypeMetadataInformation metadataInfo)
             {
-                metadataInfo.Summary = FormatSummary(summary, RetrieveRelativePathFromNamespace(metadataInfo.Namespace));
+                metadataInfo.Summary = FormatSummary(RetrieveRelativePathFromNamespace(metadataInfo.Namespace), summary,  remarks, example);
             }
         }
 
-        private void ProcessFieldOrPropertyMember(XElement _, string name, string? summary)
+        private void ProcessFieldOrPropertyMember(XElement _, string name, string? summary, string? remarks, string? example)
         {
             var declaringType = Utilities.GetDeclaringTypeName(name);
             if (!NameToTypes.TryGetValue(declaringType, out var typeInfo) ||
@@ -157,11 +176,11 @@ namespace DotnetToMd
             var propertyName = GetMemberName(declaringType, name);
             if (metadataInfo.Properties?.TryGetValue(propertyName, out var propertyInfo) ?? false)
             {
-                propertyInfo.Summary = FormatSummary(summary, RetrieveRelativePathFromNamespace(propertyInfo.DeclaringType.Namespace));
+                propertyInfo.Summary = FormatSummary(RetrieveRelativePathFromNamespace(propertyInfo.DeclaringType.Namespace), summary, remarks, example);
             }
         }
 
-        private void ProcessMethodMember(XElement element, string name, string? summary)
+        private void ProcessMethodMember(XElement element, string name, string? summary, string? remarks, string? example)
         {
             var declaringType = Utilities.GetDeclaringTypeOfMethod(name);
             if (!NameToTypes.TryGetValue(declaringType, out var typeInfo) ||
@@ -177,7 +196,7 @@ namespace DotnetToMd
             {
                 var relativePathFromNamespace = RetrieveRelativePathFromNamespace(methodInfo.DeclaringType.Namespace);
 
-                methodInfo.Summary = FormatSummary(summary, relativePathFromNamespace);
+                methodInfo.Summary = FormatSummary(relativePathFromNamespace, summary, remarks, example);
 
                 List<XElement>? parameters = element.Elements("param")?.ToList();
                 if (methodInfo.Parameters is not null && parameters?.Count > 0)
@@ -185,12 +204,12 @@ namespace DotnetToMd
                     foreach (var parameter in parameters)
                     {
                         var parameterName = parameter.Attribute("name")?.Value.Trim();
-                        var parameterSummary = FormatSummary(parameter.Value.Trim(), relativePathFromNamespace) ?? string.Empty;
+                        var parameterSummary = FormatSummary(parameter.Value.Trim(), null, relativePathFromNamespace) ?? string.Empty;
 
                         if (parameterName is not null && 
                             methodInfo.Parameters.Value.FirstOrDefault(p => p.Name == parameterName) is ArgumentInformation argument)
                         {
-                            argument.Summary = FormatSummary(parameterSummary, relativePathFromNamespace);
+                            argument.Summary = FormatSummary(relativePathFromNamespace, parameterSummary);
                         }
                     }
                 }
@@ -199,7 +218,7 @@ namespace DotnetToMd
                 if (@return is not null && methodInfo.Return is ArgumentInformation returnInfo)
                 {
                     var returnSummary = @return.Value.Trim();
-                    returnInfo.Summary = FormatSummary(returnSummary, relativePathFromNamespace);
+                    returnInfo.Summary = FormatSummary(relativePathFromNamespace,returnSummary);
                 }
 
                 List<XElement>? exceptions = element.Elements("exception")?.ToList();
@@ -211,7 +230,7 @@ namespace DotnetToMd
                         var parameterRefName = e.Attribute("cref")?.Value.Trim();
                         parameterRefName = parameterRefName?.Substring(parameterRefName.LastIndexOf(':') + 1);
 
-                        var exceptionSummary = FormatSummary(e.Value.Trim(), relativePathFromNamespace) ?? string.Empty;
+                        var exceptionSummary = FormatSummary(relativePathFromNamespace, e.Value.Trim()) ?? string.Empty;
 
                         if (parameterRefName is not null && 
                             FetchOrCreate(parameterRefName) is TypeInformation typeInformation)
@@ -225,7 +244,7 @@ namespace DotnetToMd
             }
         }
 
-        private void ProcessEventMember(XElement _, string name, string? summary)
+        private void ProcessEventMember(XElement _, string name, string? summary, string? remarks, string? example)
         {
             var declaringType = Utilities.GetDeclaringTypeName(name);
             if (!NameToTypes.TryGetValue(declaringType, out var typeInfo) ||
@@ -238,7 +257,7 @@ namespace DotnetToMd
             var eventName = GetMemberName(declaringType, name);
             if (metadataInfo.Events?.TryGetValue(eventName, out var eventInfo) ?? false)
             {
-                eventInfo.Summary = FormatSummary(summary, RetrieveRelativePathFromNamespace(eventInfo.DeclaringType.Namespace));
+                eventInfo.Summary = FormatSummary(RetrieveRelativePathFromNamespace(eventInfo.DeclaringType.Namespace), summary, remarks, example);
             }
         }
 
@@ -259,6 +278,8 @@ namespace DotnetToMd
             {
                 return TypeInformationBuilder.CreateTypeInformationFromType(this, t);
             }
+
+            Utilities.Log($"Unable to locate type information. type={typeName ?? "null"}");
 
             return null;
         }

@@ -9,37 +9,23 @@ namespace DotnetToMd
         /// <summary>
         /// This will format a summary with cref parameters with their markdown syntax.
         /// </summary>
-        private string? FormatSummary(string? text, string prefix)
+        private string? FormatSummary(string prefix, string? text = null, string? remarks = null, string? example = null)
         {
             if (string.IsNullOrEmpty(text))
             {
                 return text;
             }
 
-            string[] paras = [GetSummary(text), GetRemarks(text)];
+            string[] paras = [GetSummary(text), GetRemarks(remarks), FormatExample(example)];
 
             text = string.Join(Environment.NewLine, paras).Trim();
 
-            if (text is null || string.IsNullOrWhiteSpace(text))
+            if (string.IsNullOrWhiteSpace(text))
             {
                 return null;
             }
 
-            Regex re = new("(<see cref=\")(.*)(\"[ ]?/>)");
-            var matchCollection = re.Matches(text);
-
-            foreach (Match match in matchCollection)
-            {
-                if (!match.Success)
-                {
-                    continue;
-                }
-
-                var replaceString = match.Value;
-                var memberName = match.Groups[2].Value;
-
-                text = text.Replace(replaceString, ToReferenceLink(memberName, prefix));
-            }
+            text = FormatLinks(text, prefix);
 
             return text;
         }
@@ -48,25 +34,37 @@ namespace DotnetToMd
         /// Return raw string value between <summary>. We do not use XNode here
         /// because it will escape the see cref parameters.
         /// </summary>
-        private string? GetSummary(string text)
+        private string GetSummary(string? text)
         {
+            if (string.IsNullOrEmpty(text)) return string.Empty;
             Regex re = new(@"^(<summary>)((.|\r|\n)*)(?=<\/summary>)");
             var m = re.Match(text);
 
-            return m.Groups[2].Value.Trim();
+            return FormatParagraphs(m.Groups[2].Value.Trim());
         }
 
-        private string? GetRemarks(string text)
+        private string GetRemarks(string? text)
         {
+            if (string.IsNullOrEmpty(text)) return string.Empty;
             Regex re = new(@"^(<remarks>)((.|\r|\n)*)(?=<\/remarks>)");
             var m = re.Match(text);
 
-            return m.Groups[2].Value.Trim();
+            return FormatParagraphs(m.Groups[2].Value.Trim());
+        }
+
+        private string FormatParagraphs(string? text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return string.Empty;
+            }
+
+            return text.Replace("</para>", string.Empty).Replace("<para>", "<br />");
         }
 
         /// <param name="fullName">Full name of the target type.</param>
         /// <param name="prefix">Prefix of the current namespace (for appending to a relative path).</param>
-        private string ToReferenceLink(string fullName, string prefix)
+        private string ToReferenceLink(string fullName, string prefix, string? overrideName = "")
         {
             var name = fullName.Substring(fullName.LastIndexOf(':') + 1);
             var firstCharacter = fullName[0];
@@ -93,6 +91,10 @@ namespace DotnetToMd
                 case 'E':
                     declaringTypeName = Utilities.GetDeclaringTypeName(name);
                     type = FetchOrCreate(declaringTypeName);
+                    if (firstCharacter == 'F')
+                    {
+                        Utilities.Log($"Building link. typeName={declaringTypeName}, type={type?.Name ?? "null"}");
+                    }
                     if (type is null)
                     {
                         break;
@@ -133,6 +135,10 @@ namespace DotnetToMd
                     break;
             }
 
+            if (!string.IsNullOrEmpty(overrideName))
+            {
+                name = overrideName;
+            }
             return $"[{name}]({referenceLink})";
         }
 

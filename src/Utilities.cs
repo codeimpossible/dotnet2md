@@ -12,6 +12,11 @@ namespace DotnetToMd
         public static BindingFlags DefaultFlags = BindingFlags.Public | BindingFlags.Instance |
                 BindingFlags.Static | BindingFlags.NonPublic;
 
+        public static void Log(string? message, string? type = "INFO")
+        {
+            Console.WriteLine($"[{type}] {message}");
+        }
+
         public static string AsKey(this Type t)
         {
             return t.IsGenericParameter || t.FullName is null ? t.Name : t.FullName;

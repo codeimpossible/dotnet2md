@@ -7,5 +7,6 @@
         public string? Remarks { get; set; }
         public string? MinimumVersion { get; set; }
         public readonly List<(string Uri, string? Text)> AdditionalLinks = new();
+        public string? Example { get; set; }
     }
 }

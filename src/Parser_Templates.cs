@@ -182,16 +182,7 @@ namespace DotnetToMd
                 }
             }
 
-            if (t.AdditionalLinks.Count > 0)
-            {
-                builder.Append("## More information\n\n");
-                foreach (var link in t.AdditionalLinks)
-                {
-                    var text = link.Text ?? link.Uri;
-                    builder.Append($"* [{text}]({link.Uri})\n");
-                }
-            }
-
+            AppendAdditionalLinks(t.AdditionalLinks, builder, "## More information");
 
             return builder.ToString();
         }
@@ -216,6 +207,7 @@ namespace DotnetToMd
         {
             StringBuilder builder = new();
 
+            builder.Append($"<a name=\"{p.Name}\"></a>\n\n");
             builder.Append($"### `{p.Name}`\n");
 
             builder.Append($"<!-- tc:scope {p.AccessModifier.ToString().ToLower()} -->\n");
@@ -234,15 +226,7 @@ namespace DotnetToMd
 
             builder.Append(FormatCodeSignature(p));
 
-            if (p.AdditionalLinks.Count > 0)
-            {
-                builder.Append("#### More information\n\n");
-                foreach (var link in p.AdditionalLinks)
-                {
-                    var text = link.Text ?? link.Uri;
-                    builder.Append($"* [{text}]({link.Uri})\n");
-                }
-            }
+            AppendAdditionalLinks(p.AdditionalLinks, builder, "#### More information");
 
             return builder;
         }
@@ -270,6 +254,7 @@ namespace DotnetToMd
         {
             StringBuilder builder = new();
 
+            builder.Append($"<a name=\"{m.Name}\"></a>\n\n");
             builder.Append($"### `{m.GetPrettyKey()}`\n");
 
             builder.Append($"<!-- tc:scope {m.AccessModifier.ToString().ToLower()} -->\n");
@@ -311,17 +296,56 @@ namespace DotnetToMd
                 }
             }
 
-            if (m.AdditionalLinks.Count > 0)
-            {
-                builder.Append("#### More information\n\n");
-                foreach (var link in m.AdditionalLinks)
-                {
-                    var text = link.Text ?? link.Uri;
-                    builder.Append($"* [{text}]({link.Uri})\n");
-                }
-            }
+            AppendAdditionalLinks(m.AdditionalLinks, builder, "#### More information");
 
             return builder;
+        }
+
+        private void AppendAdditionalLinks(List<(string Uri, string? Text)> links, StringBuilder builder, string header)
+        {
+            if (links.Count > 0)
+            {
+                builder.Append($"{header}\n\n");
+                foreach (var link in links)
+                {
+                    var linkUri = link.Uri;
+                    var linkText = link.Text;
+                    if (IsReferenceLink(link.Uri))
+                    {
+                        var marker = link.Uri.Substring(0, 2);
+                        var fullPath = link.Uri.Substring(2);
+                        var linkSuffix = string.Empty;
+                        var typePath = fullPath;
+                        switch (marker)
+                        {
+                            case "T:":
+                                if (string.IsNullOrEmpty(linkText)) linkText = typePath;
+                                break;
+                            case "F:":
+                            case "M:":
+                            case "P:":
+                                var memberName = fullPath.Split('.').Last();
+                                typePath = fullPath.Replace($".{memberName}", string.Empty);
+                                linkSuffix = $"#{memberName}";
+                                if (string.IsNullOrEmpty(linkText)) linkText = $"{typePath}.{memberName}";
+                                break;
+                            default: continue;
+                        }
+
+                        var typeInfo = FetchOrCreate(typePath);
+                        if (typeInfo is null)
+                        {
+                            continue;
+                        }
+
+                        var prefix = RetrieveRelativePathFromNamespace(typeInfo.Namespace);
+                        linkUri = $"{FormatReferenceLink(prefix, typeInfo.ReferenceLink)}{linkSuffix}";
+                    }
+                    var text = linkText ?? linkUri;
+                    Utilities.Log($"Building additional link. text={text}, uri={linkUri}");
+                    builder.Append($"* [{text}]({linkUri})\n");
+                }
+            }
         }
 
         private StringBuilder ArgumentToMarkdown(ArgumentInformation arg, string prefix)
@@ -350,15 +374,15 @@ namespace DotnetToMd
                 return string.Empty;
             }
 
-            var level = @namespace.Count(c => c == '.');
+            // var level = @namespace.Count(c => c == '.');
+            //
+            // StringBuilder builder = new();
+            // while (level-- >= 0)
+            // {
+            //     builder.Append("/noir/reference/");
+            // }
 
-            StringBuilder builder = new();
-            while (level-- >= 0)
-            {
-                builder.Append("/noir/reference/");
-            }
-
-            return builder.ToString();
+            return "/noir/reference/";
         }
 
         /// <summary>
