@@ -148,6 +148,17 @@ namespace DotnetToMd
                 }
             }
 
+            if (t.Fields?.Count > 0)
+            {
+                builder.Append("## Fields\n\n");
+
+                var sortedFields = t.Fields.OrderBy(kv => kv.Key).Select(kv => kv.Value).ToList();
+                foreach (var f in sortedFields)
+                {
+                    builder.Append(PropertyToMarkdown(f, prefix));
+                }
+            }
+
             if (t.Properties?.Count > 0)
             {
                 builder.Append("## Properties\n\n");

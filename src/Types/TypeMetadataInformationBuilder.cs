@@ -35,7 +35,8 @@ namespace DotnetToMd.Metadata
             _typeResult.InheritedType = _inheritedClass;
             _typeResult.InheritedInterfaces = _inheritedInterfaces?.ToImmutableArray();
 
-            _typeResult.Properties = FetchProperties().AddRange(FetchFields());
+            _typeResult.Properties = FetchProperties();
+            _typeResult.Fields = FetchFields();
             _typeResult.Events = FetchEvents();
 
             _typeResult.Constructors = FetchConstructors();
@@ -98,6 +99,12 @@ namespace DotnetToMd.Metadata
 
             var name = _type.IsGenericType ? Utilities.FormatGenericName(_type) : _type.Name;
             result.Append($"{name} ");
+
+            if (_type.IsEnum && Enum.TryParse(_type, name, out var e))
+            {
+                result.Append($"= {e};");
+                return result.ToString().Trim();
+            }
 
             List<TypeInformation> implementations = new();
 

@@ -13,7 +13,7 @@ namespace DotnetToMd.Metadata
 
             List<PropertyInformation> result = new();
 
-            IEnumerable<EventInfo> events = _type.GetEvents(Utilities.DefaultFlags).Where(IsEventVisible);
+            IEnumerable<EventInfo> events = _type.GetEvents(Utilities.PublicInstanceOnly).Where(IsEventVisible);
 
             foreach (var @event in events)
             {

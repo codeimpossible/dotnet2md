@@ -9,13 +9,13 @@ namespace DotnetToMd.Metadata
     {
         private ImmutableDictionary<string, MethodInformation> FetchConstructors()
         {
-            IEnumerable<ConstructorInfo> methods = _type.GetConstructors(Utilities.DefaultFlags).Where(IsMethodVisible);
+            IEnumerable<ConstructorInfo> methods = _type.GetConstructors(Utilities.PublicInstanceOnly).Where(IsMethodVisible);
             return ProcessMethods(methods);
         }
 
         private ImmutableDictionary<string, MethodInformation> FetchMethods()
         {
-            IEnumerable<MethodInfo> methods = _type.GetMethods(Utilities.DefaultFlags).Where(IsMethodVisible);
+            IEnumerable<MethodInfo> methods = _type.GetMethods(Utilities.PublicInstanceOnly).Where(IsMethodVisible);
             return ProcessMethods(methods);
         }
 

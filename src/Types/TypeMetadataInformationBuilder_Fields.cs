@@ -9,14 +9,24 @@ namespace DotnetToMd.Metadata
     {
         private ImmutableDictionary<string, PropertyInformation> FetchFields()
         {
-            Debug.Assert(_typeResult is not null);
-
             List<PropertyInformation> result = new();
 
-            IEnumerable<FieldInfo> fields = _type.GetFields(Utilities.DefaultFlags).Where(IsFieldVisible);
+            Debug.Assert(_typeResult is not null);
+
+            if (_type.FullName.Contains("SeparatedGuid"))
+            {
+                Utilities.Log("Processing SeparatedGuid type!");
+            }
+
+            IEnumerable<FieldInfo> fields = _type.GetFields(Utilities.PublicInstanceOnly);
 
             foreach (var field in fields)
             {
+                if (_type.FullName.Contains("SeparatedGuid"))
+                {
+                    Utilities.Log($"Processing SeparatedGuid type! field={field.Name}");
+                }
+
                 if (field.Attributes.HasFlag(FieldAttributes.RTSpecialName))
                 {
                     // This is a runtime field, so just skip.
@@ -26,7 +36,7 @@ namespace DotnetToMd.Metadata
                 var typeInfo = TypeInformationBuilder.FetchOrCreate(_parser, field.FieldType);
                 if (typeInfo is null)
                 {
-                    Debug.Fail("Unable to decode field type?");
+                    Utilities.Log($"Unable to decode field type? type={field.FieldType.FullName}, fieldName={field.Name}, parent={field.DeclaringType?.FullName ?? "null"}", "ERROR");
                     continue;
                 }
                 

@@ -12,6 +12,9 @@ namespace DotnetToMd
         public static BindingFlags DefaultFlags = BindingFlags.Public | BindingFlags.Instance |
                 BindingFlags.Static | BindingFlags.NonPublic;
 
+        public static BindingFlags PublicInstanceOnly = BindingFlags.Public | BindingFlags.Instance |
+                                                        BindingFlags.Static | BindingFlags.DeclaredOnly;
+
         public static void Log(string? message, string? type = "INFO")
         {
             Console.WriteLine($"[{type}] {message}");

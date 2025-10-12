@@ -18,6 +18,7 @@ namespace DotnetToMd.Metadata
 
         public ImmutableDictionary<string, MethodInformation>? Constructors;
         public ImmutableDictionary<string, PropertyInformation>? Properties;
+        public ImmutableDictionary<string, PropertyInformation>? Fields;
         public ImmutableDictionary<string, MethodInformation>? Methods;
         public ImmutableDictionary<string, PropertyInformation>? Events;
 

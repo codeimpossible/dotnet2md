@@ -13,7 +13,7 @@ namespace DotnetToMd.Metadata
 
             List<PropertyInformation> result = new();
 
-            IEnumerable<PropertyInfo> properties = _type.GetProperties(Utilities.DefaultFlags).Where(IsPropertyVisible);
+            IEnumerable<PropertyInfo> properties = _type.GetProperties(Utilities.PublicInstanceOnly).Where(IsPropertyVisible);
 
             foreach (var property in properties)
             {
